@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="app/src/main/res/layout/message.xml" value="0.2957427536231884" />
+        <entry key="app/src/main/res/layout/message_from_peer.xml" value="0.31476449275362317" />
+        <entry key="app/src/main/res/layout/messages.xml" value="0.2957427536231884" />
+        <entry key="app/src/main/res/layout/peer.xml" value="0.1752786220871327" />
+        <entry key="app/src/main/res/layout/received_message.xml" value="0.1752786220871327" />
+        <entry key="app/src/main/res/layout/view_peer.xml" value="0.2957427536231884" />
+        <entry key="app/src/main/res/layout/view_peers.xml" value="0.2015625" />
+        <entry key="app/src/main/res/menu/chatserver_menu.xml" value="0.36041666666666666" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>
