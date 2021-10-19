@@ -1,2 +1,0 @@
-include ':cs522-library'
-include ':app', ':cs522-library'
