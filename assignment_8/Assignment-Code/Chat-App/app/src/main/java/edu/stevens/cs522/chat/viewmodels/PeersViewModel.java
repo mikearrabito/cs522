@@ -13,7 +13,6 @@ import edu.stevens.cs522.chat.entities.Peer;
 public class PeersViewModel extends AndroidViewModel {
 
     private ChatDatabase chatDatabase;
-
     private LiveData<List<Peer>> peers;
 
     public PeersViewModel(Application context) {
@@ -23,13 +22,9 @@ public class PeersViewModel extends AndroidViewModel {
 
     public LiveData<List<Peer>> getPeers() {
         if (peers == null) {
-            initPeers();
+            peers = chatDatabase.peerDao().fetchAllPeers();
         }
         return peers;
-    }
-
-    private void initPeers() {
-        peers = chatDatabase.peerDao().fetchAllPeers();
     }
 
     @Override

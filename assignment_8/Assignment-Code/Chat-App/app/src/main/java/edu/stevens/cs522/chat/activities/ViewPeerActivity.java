@@ -54,13 +54,12 @@ public class ViewPeerActivity extends FragmentActivity {
 
         username = findViewById(R.id.view_user_name);
         address = findViewById(R.id.view_address);
-        timestamp = findViewById(R.id.view_address);
+        timestamp = findViewById(R.id.view_timestamp);
 
         username.setText(peer.name);
         address.setText(peer.address.toString());
         timestamp.setText(peer.timestamp.toString());
 
-        // Initialize the recyclerview and adapter for messages
         messageList = findViewById(R.id.view_messages);
         messageList.setLayoutManager(new LinearLayoutManager(this));
 

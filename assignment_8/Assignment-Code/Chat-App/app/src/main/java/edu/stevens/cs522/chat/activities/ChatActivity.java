@@ -10,6 +10,7 @@
 package edu.stevens.cs522.chat.activities;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -55,9 +56,6 @@ import edu.stevens.cs522.chat.viewmodels.ChatViewModel;
 public class ChatActivity extends FragmentActivity implements OnClickListener, ServiceConnection, ResultReceiverWrapper.IReceive {
     final static public String TAG = ChatActivity.class.getCanonicalName();
 
-    /*
-     * UI for displayed received messages
-     */
     private ChatViewModel chatViewModel;
 
     private LiveData<List<Message>> messages;
@@ -66,9 +64,6 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
 
     private MessageAdapter messagesAdapter;
 
-    /*
-     * Widgets for dest address, message text, send button.
-     */
     private EditText destinationHost;
 
     private EditText destinationPort;
@@ -90,9 +85,7 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
      */
     private ResultReceiverWrapper sendResultReceiver;
 
-    /*
-     * Called when the activity is first created.
-     */
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,6 +106,7 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
 
         messages = chatViewModel.fetchAllMessages();
         messages.observe(this, messages -> {
+            Log.d(TAG, "Updating messages");
             messagesAdapter.setMessages(messages);
             messagesAdapter.notifyDataSetChanged();
         });
@@ -120,22 +114,24 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
         sendButton = findViewById(R.id.send_button);
         sendButton.setOnClickListener(this);
 
-        // TODO initiate binding to the service
+        destinationHost = findViewById(R.id.destination_host);
+        destinationPort = findViewById(R.id.destination_port);
 
+        Intent chatServiceIntent = new Intent(this, ChatService.class);
+        bindService(chatServiceIntent, this, Context.BIND_AUTO_CREATE);
 
-        // TODO initialize sendResultReceiver (for receiving notification of message sent)
-
+        sendResultReceiver = new ResultReceiverWrapper(new Handler());
     }
 
     public void onResume() {
         super.onResume();
         senderName.setText(Settings.getSenderName(this));
-        // TODO register result receiver
+        sendResultReceiver.setReceiver(this);
     }
 
     public void onPause() {
         super.onPause();
-        // TODO unregister result receiver
+        sendResultReceiver.setReceiver(null);
     }
 
     public void onDestroy() {
@@ -176,10 +172,8 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
     public void onClick(View v) {
 
         if (!Settings.isRegistered(this)) {
-
-            Toast.makeText(this, R.string.register_necessary, Toast.LENGTH_LONG);
+            Toast.makeText(this, R.string.register_necessary, Toast.LENGTH_LONG).show();
             return;
-
         }
 
         if (chatService != null) {
@@ -189,13 +183,13 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
              * port on the host redirected to the server port on the server AVD.
              */
 
-            String destAddrString = null;
+            String destAddrString = destinationHost.getText().toString();
 
-            String destPortString = null;
+            String destPortString = destinationPort.getText().toString();
 
             String chatRoom = "_default";
 
-            String text = null;
+            String text = messageText.getText().toString();
 
             Date timestamp = DateUtils.now();
 
@@ -203,25 +197,25 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
 
             Double longitude = -89.574814;
 
-            // TODO Get destination host and port and message from UI.
-
-
             if (destAddrString.isEmpty()) {
+                Toast.makeText(this, "Enter an address", Toast.LENGTH_LONG).show();
                 return;
             }
             InetAddress destAddr = InetAddressUtils.fromString(destAddrString);
 
             if (destPortString.isEmpty()) {
+                Toast.makeText(this, "Enter a port", Toast.LENGTH_LONG).show();
                 return;
             }
             int destPort = Integer.parseInt(destPortString);
 
             if (text.isEmpty()) {
+                Toast.makeText(this, "Enter a message", Toast.LENGTH_LONG).show();
                 return;
             }
 
-
-            // TODO use chatService to send the message
+            chatService.send(destAddr, destPort, chatRoom, text,
+                    timestamp, latitude, longitude, sendResultReceiver);
 
             Log.i(TAG, "Sent message: " + text);
 
@@ -236,10 +230,12 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
     public void onReceiveResult(int resultCode, Bundle data) {
         switch (resultCode) {
             case RESULT_OK:
-                // TODO show a success toast message
+                Toast.makeText(this, "Message sent", Toast.LENGTH_LONG).show();
+                break;
+            case RESULT_CANCELED:
+                Toast.makeText(this, "Could not send message", Toast.LENGTH_LONG).show();
                 break;
             default:
-                // TODO show a failure toast message
                 break;
         }
     }
@@ -247,9 +243,8 @@ public class ChatActivity extends FragmentActivity implements OnClickListener, S
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         Log.d(TAG, "Connected to the chat service.");
-        // TODO initialize chatService
-
-
+        ChatService.ChatBinder binder = (ChatService.ChatBinder) service;
+        chatService = binder.getService();
     }
 
     @Override

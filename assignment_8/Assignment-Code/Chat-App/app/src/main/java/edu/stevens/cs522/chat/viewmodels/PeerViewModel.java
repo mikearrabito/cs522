@@ -30,17 +30,13 @@ public class PeerViewModel extends AndroidViewModel {
 
     public LiveData<List<Message>> getMessages() {
         if (messages == null) {
-            initMessages();
+            messages = chatDatabase.messageDao().fetchMessagesFromPeer(currentPeer.id);
         }
         return messages;
     }
 
     public long insert(Peer peer) {
         return chatDatabase.peerDao().insert(peer);
-    }
-
-    private void initMessages() {
-        messages = chatDatabase.messageDao().fetchMessagesFromPeer(currentPeer.id);
     }
 
 }

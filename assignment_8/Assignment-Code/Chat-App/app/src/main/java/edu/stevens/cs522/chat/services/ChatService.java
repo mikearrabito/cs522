@@ -30,45 +30,30 @@ import edu.stevens.cs522.chat.entities.Message;
 import edu.stevens.cs522.chat.entities.Peer;
 import edu.stevens.cs522.chat.settings.Settings;
 
+import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
 
 
 public class ChatService extends Service implements IChatService {
 
     protected static final String TAG = ChatService.class.getCanonicalName();
-
     protected static final String SEND_TAG = "ChatSendThread";
 
-    protected static final String RECEIVE_TAG = "ChatReceiveThread";
-
-
     public final static String SENDER_NAME = "name";
-
     public final static String CHATROOM = "room";
-
     public final static String MESSAGE_TEXT = "text";
-
     public final static String TIMESTAMP = "timestamp";
-
     public final static String LATITUDE = "latitude";
-
     public final static String LONGITUDE = "longitude";
 
 
     protected IBinder binder = new ChatBinder();
-
     protected SendHandler sendHandler;
-
     protected Thread receiveThread;
-
     protected DatagramSendReceive chatSocket;
-
     protected boolean socketOK = true;
-
     protected boolean finished = false;
-
     protected ChatDatabase chatDatabase;
-
     protected int chatPort;
 
     @Override
@@ -84,9 +69,9 @@ public class ChatService extends Service implements IChatService {
             throw new IllegalStateException("Unable to init client socket.", e);
         }
 
-        // TODO initialize the thread that sends messages
-
-        // end TODO
+        HandlerThread handlerThread = new HandlerThread(SEND_TAG);
+        handlerThread.start();
+        sendHandler = new SendHandler(handlerThread.getLooper());
 
         receiveThread = new Thread(new ReceiverThread());
         receiveThread.start();
@@ -119,8 +104,25 @@ public class ChatService extends Service implements IChatService {
                      String chatRoom, String messageText,
                      Date timestamp, double latitude, double longitude, ResultReceiver receiver) {
         android.os.Message message = sendHandler.obtainMessage();
-        // TODO send the message to the sending thread (add a bundle with params)
 
+        Bundle bundle = new Bundle();
+        bundle.putSerializable(SendHandler.HDLR_DEST_ADDRESS, destAddress);
+        bundle.putInt(SendHandler.HDLR_DEST_PORT, destPort);
+        bundle.putString(SendHandler.HDLR_CHATROOM, chatRoom);
+        bundle.putString(SendHandler.HDLR_MESSAGE_TEXT, messageText);
+        bundle.putSerializable(SendHandler.HDLR_TIMESTAMP, timestamp);
+        bundle.putDouble(SendHandler.HDLR_LATITUDE, latitude);
+        bundle.putDouble(SendHandler.HDLR_LONGITUDE, longitude);
+        bundle.putParcelable(SendHandler.HDLR_RECEIVER, receiver);
+
+        message.setData(bundle);
+
+        sendHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                sendHandler.sendMessage(message);
+            }
+        });
     }
 
 
@@ -131,7 +133,6 @@ public class ChatService extends Service implements IChatService {
         public static final String HDLR_TIMESTAMP = "edu.stevens.cs522.chat.services.extra.TIMESTAMP";
         public static final String HDLR_LATITUDE = "edu.stevens.cs522.chat.services.extra.LATITUDE";
         public static final String HDLR_LONGITUDE = "edu.stevens.cs522.chat.services.extra.LONGITUDE";
-
         public static final String HDLR_DEST_ADDRESS = "edu.stevens.cs522.chat.services.extra.DEST_ADDRESS";
         public static final String HDLR_DEST_PORT = "edu.stevens.cs522.chat.services.extra.DEST_PORT";
         public static final String HDLR_RECEIVER = "edu.stevens.cs522.chat.services.extra.RECEIVER";
@@ -145,56 +146,27 @@ public class ChatService extends Service implements IChatService {
 
             try {
                 InetAddress destAddr;
-
                 int destPort;
-
                 String senderName;
-
                 long senderId;
-
                 String chatRoom;
-
                 String messageText;
-
                 Date timestamp;
-
                 Double latitude, longitude;
-
                 ResultReceiver receiver;
-
                 senderName = Settings.getSenderName(ChatService.this);
-
                 senderId = Settings.getSenderId(ChatService.this);
 
                 Bundle data = message.getData();
+                destAddr = (InetAddress) data.getSerializable(HDLR_DEST_ADDRESS);
+                destPort = data.getInt(HDLR_DEST_PORT);
+                chatRoom = data.getString(HDLR_CHATROOM);
+                messageText = data.getString(HDLR_MESSAGE_TEXT);
+                timestamp = (Date) data.getSerializable(HDLR_TIMESTAMP);
+                latitude = data.getDouble(HDLR_LATITUDE);
+                longitude = data.getDouble(HDLR_LONGITUDE);
+                receiver = data.getParcelable(HDLR_RECEIVER);
 
-
-                destAddr = null;
-
-                destPort = -1;
-
-                chatRoom = null;
-
-                messageText = null;
-
-                timestamp = null;
-
-                latitude = null;
-
-                longitude = null;
-
-                receiver = null;
-
-
-                // TODO get data from message (including result receiver)
-
-
-
-                // End todo
-
-                /*
-                 * Insert into the local database
-                 */
                 Message mesg = new Message();
                 mesg.messageText = messageText;
                 mesg.chatRoom = chatRoom;
@@ -203,11 +175,6 @@ public class ChatService extends Service implements IChatService {
                 mesg.longitude = longitude;
                 mesg.sender = senderName;
                 mesg.senderId = senderId;
-
-                // Okay to do this synchronously because we are on a background thread.
-                chatDatabase.messageDao().persist(mesg);
-
-                Log.d(TAG, String.format("Sending data from address %s:%d", chatSocket.getInetAddress(), chatSocket.getPort()));
 
                 StringWriter output = new StringWriter();
                 JsonWriter wr = new JsonWriter(output);
@@ -226,19 +193,23 @@ public class ChatService extends Service implements IChatService {
 
                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, destAddr, destPort);
 
-                chatSocket.send(sendPacket);
+                try {
+                    Log.d(TAG, String.format("Sending data from address %s:%d", chatSocket.getInetAddress(), chatSocket.getPort()));
+                    chatSocket.send(sendPacket);
+                    chatDatabase.messageDao().persist(mesg); // only persist if message was successfully sent
+                } catch (Exception e) {
+                    receiver.send(RESULT_CANCELED, null);
+                    Log.i(TAG, "Error sending message: " + e.getMessage());
+                    return;
+                }
 
                 Log.i(TAG, "Sent content: " + content);
-
                 receiver.send(RESULT_OK, null);
-
-
             } catch (UnknownHostException e) {
                 Log.e(TAG, "Unknown host exception", e);
             } catch (IOException e) {
                 Log.e(TAG, "IO exception", e);
             }
-
         }
     }
 
@@ -322,12 +293,8 @@ public class ChatService extends Service implements IChatService {
                     message.latitude = latitude;
                     message.longitude = longitude;
 
-                    /*
-                     * TODO upsert peer and insert message into the database
-                     */
-
-
-
+                    message.senderId = chatDatabase.peerDao().upsert(peer);
+                    chatDatabase.messageDao().persist(message);
                 } catch (Exception e) {
 
                     Log.e(TAG, "Problems receiving packet.", e);
