@@ -1,0 +1,11 @@
+Nov 17, 2021 11:58:36 PM edu.stevens.cs522.chat.webservice.Main info
+INFO: Starting HTTP server...
+Nov 17, 2021 11:58:37 PM org.glassfish.grizzly.http.server.NetworkListener start
+INFO: Started listener bound to [michaels-mbp:8080]
+Nov 17, 2021 11:58:37 PM org.glassfish.grizzly.http.server.HttpServer start
+INFO: [HttpServer] Started.
+Nov 17, 2021 11:58:37 PM edu.stevens.cs522.chat.webservice.Main info
+INFO: Listening at http://michaels-mbp:8080
+Nov 17, 2021 11:58:37 PM edu.stevens.cs522.chat.webservice.Main info
+INFO: Service available at http://michaels-mbp:8080/chat
+Hit enter to stop...
