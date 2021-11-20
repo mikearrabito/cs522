@@ -1,12 +1,16 @@
 package edu.stevens.cs522.chat.rest;
 
+import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
 
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+
+import java.net.ConnectException;
 
 import edu.stevens.cs522.base.DateUtils;
 import edu.stevens.cs522.base.work.OneTimeWorkRequest;
@@ -14,8 +18,10 @@ import edu.stevens.cs522.base.work.PeriodicWorkRequest;
 import edu.stevens.cs522.base.work.WorkManager;
 import edu.stevens.cs522.chat.entities.Message;
 import edu.stevens.cs522.chat.location.CurrentLocation;
+import edu.stevens.cs522.chat.rest.request.ChatServiceResponse;
 import edu.stevens.cs522.chat.rest.request.RegisterRequest;
 import edu.stevens.cs522.chat.rest.request.ChatServiceRequest;
+import edu.stevens.cs522.chat.rest.request.RegisterResponse;
 import edu.stevens.cs522.chat.rest.work.PostMessageWorker;
 import edu.stevens.cs522.chat.rest.work.SynchronizeWorker;
 import edu.stevens.cs522.chat.services.RegisterService;
@@ -31,7 +37,7 @@ public class ChatHelper {
 
     private static final String TAG = ChatHelper.class.getCanonicalName();
 
-    public static final int SYNC_INTERVAL = 5;
+    public static final int SYNC_INTERVAL = 1;
 
     private final Context context;
     private final WorkManager workManager;
@@ -47,11 +53,17 @@ public class ChatHelper {
 
     public void register(Uri chatServer, String chatName, ResultReceiverWrapper resultReceiver) {
         if (chatName != null && !chatName.isEmpty()) {
-            // TODO register with the cloud chat service
-            Settings.saveChatName(context, chatName);
             RegisterRequest request = new RegisterRequest(chatServer, chatName);
-            processor.process(request);
-            resultReceiver.send(RESULT_OK, null);
+            try {
+                ChatServiceResponse response = processor.process(request);
+                if (!response.isValid()) {
+                    throw new Exception("Network error");
+                }
+                Settings.saveChatName(context, chatName);
+                resultReceiver.send(RESULT_OK, null);
+            } catch (Exception e) {
+                resultReceiver.send(RESULT_CANCELED, null);
+            }
         }
     }
 
@@ -74,7 +86,6 @@ public class ChatHelper {
             }
 
             /*
-             * TODO enqueue a request with workManager to post this message
              * Depending on Settings.SYNC, message will be sent immediately, or just added locally
              * and eventually synchronized with server database.  The request processor
              * is where either of these will be done.
@@ -94,8 +105,7 @@ public class ChatHelper {
                 throw new IllegalStateException("Trying to schedule sync when it is already scheduled!");
             }
 
-            // TODO schedule periodic synchronization with message database
-            syncRequest = new PeriodicWorkRequest(SynchronizeWorker.class, null, 3);
+            syncRequest = new PeriodicWorkRequest(SynchronizeWorker.class, null, SYNC_INTERVAL);
             workManager.enqueuePeriodicUniqueWork(syncRequest);
         }
     }
@@ -108,7 +118,6 @@ public class ChatHelper {
                 throw new IllegalStateException("Trying to cancel sync when it is not scheduled!");
             }
 
-            // TODO cancel periodic synchronization with message database
             workManager.cancelPeriodicUniqueWork(syncRequest);
             syncRequest = null;
         }

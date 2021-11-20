@@ -17,6 +17,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
+import java.net.ConnectException;
 import java.util.List;
 
 import edu.stevens.cs522.base.DateUtils;
@@ -103,7 +104,7 @@ public class RequestProcessor {
             peer.latitude = request.latitude;
             peer.longitude = request.longitude;
             chatDatabase.peerDao().upsert(peer);
-
+            System.out.println("id from response: " + registration.getSenderId());
             Settings.saveServerUri(context, request.chatServer);
             Settings.saveChatName(context, request.chatname);
             Settings.saveSenderId(context, registration.getSenderId());
@@ -112,13 +113,7 @@ public class RequestProcessor {
     }
 
     public ChatServiceResponse perform(PostMessageRequest request) {
-
         Log.d(TAG, "Posting message." + request.message.messageText);
-
-        Log.d(TAG, "Inserting the message into the local database.");
-        long id = -1;  // Local PK of the message in the DB
-        id = chatDatabase.requestDao().insert(request.message);
-
         if (!Settings.SYNC) {
             /*
              * We are synchronously uploading messages to the server.
@@ -127,6 +122,9 @@ public class RequestProcessor {
             ChatServiceResponse response = restMethod.perform(request);
             if (response instanceof PostMessageResponse) {
                 Log.d(TAG, "Message upload successful!");
+                Log.d(TAG, "Inserting the message into the local database.");
+                long id = -1;  // Local PK of the message in the DB
+                id = chatDatabase.requestDao().insert(request.message);
                 PostMessageResponse postMessageResponse = (PostMessageResponse) response;
                 chatDatabase.requestDao().updateSeqNum(id, postMessageResponse.getMessageId());
             }
@@ -136,6 +134,8 @@ public class RequestProcessor {
              * We will just insert the message into the database, and rely on background
              * synchronization driven by alarms to upload it asynchronously.
              */
+            Log.d(TAG, "Inserting the message into the local database.");
+            chatDatabase.requestDao().insert(request.message);
             Log.d(TAG, "We will upload the message when we synchronize with the database later.");
             return request.getDummyResponse();
         }

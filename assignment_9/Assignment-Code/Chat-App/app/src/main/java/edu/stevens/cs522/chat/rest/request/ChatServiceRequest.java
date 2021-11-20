@@ -28,9 +28,11 @@ public abstract class ChatServiceRequest implements Parcelable {
         POST_MESSAGE("Post Message"),
         SYNCHRONIZE("Synchronize");
         private final String value;
+
         private RequestType(String value) {
             this.value = value;
         }
+
         public String getValue() {
             return value;
         }
@@ -42,9 +44,11 @@ public abstract class ChatServiceRequest implements Parcelable {
         FAILED("Failed"),
         COMPLETED("Completed");
         private final String value;
+
         private StatusType(String value) {
             this.value = value;
         }
+
         public String getValue() {
             return value;
         }
@@ -97,17 +101,17 @@ public abstract class ChatServiceRequest implements Parcelable {
         // Subclasses write tag, then call this, then write out their own fields
         EnumUtils.writeEnum(out, status);
         if (appID != null) {
-            out.writeByte((byte)1);
+            out.writeByte((byte) 1);
             out.writeString(appID.toString());
         } else {
-            out.writeByte((byte)0);
+            out.writeByte((byte) 0);
         }
         out.writeLong(version);
         if (timestamp != null) {
-            out.writeByte((byte)1);
+            out.writeByte((byte) 1);
             DateUtils.writeDate(out, timestamp);
         } else {
-            out.writeByte((byte)0);
+            out.writeByte((byte) 0);
         }
         out.writeDouble(longitude);
         out.writeDouble(latitude);
@@ -131,8 +135,8 @@ public abstract class ChatServiceRequest implements Parcelable {
     public static String LATITUDE_HEADER = "X-Latitude";
 
     // App-specific HTTP request headers.
-    public final Map<String,String> getRequestHeaders() {
-        Map<String,String> headers = new HashMap<>();
+    public final Map<String, String> getRequestHeaders() {
+        Map<String, String> headers = new HashMap<>();
         headers.put(APP_ID_HEADER, appID.toString());
         headers.put(TIMESTAMP_HEADER, Long.toString(timestamp.getTime()));
         headers.put(LONGITUDE_HEADER, Double.toString(longitude));
@@ -140,7 +144,9 @@ public abstract class ChatServiceRequest implements Parcelable {
         return headers;
     }
 
-    public String toString() { return this.getClass().getName(); }
+    public String toString() {
+        return this.getClass().getName();
+    }
 
     public abstract ChatServiceResponse getResponse(Response<?> response) throws IOException;
 
@@ -175,7 +181,7 @@ public abstract class ChatServiceRequest implements Parcelable {
             default:
                 break;
         }
-        throw new IllegalArgumentException("Unknown request type: "+requestType.name());
+        throw new IllegalArgumentException("Unknown request type: " + requestType.name());
     }
 
     public static final Parcelable.Creator<ChatServiceRequest> CREATOR = new Parcelable.Creator<ChatServiceRequest>() {

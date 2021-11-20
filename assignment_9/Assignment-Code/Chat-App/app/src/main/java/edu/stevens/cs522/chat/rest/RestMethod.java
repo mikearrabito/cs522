@@ -140,10 +140,11 @@ public class RestMethod {
         builder.interceptors().add(interceptor);
         OkHttpClient client = builder.build();
 
-        /*
-         * TODO Wrap the okhttp client with a retrofit stub factory.
-         */
-        Retrofit retrofit = new Retrofit.Builder().client(client).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(serverUri.toString())
+                .addConverterFactory(GsonConverterFactory.create(this.gson))
+                .client(client)
+                .build();
         return retrofit.create(ServerApi.class);
     }
 
@@ -152,9 +153,8 @@ public class RestMethod {
         try {
             Log.d(TAG, "Performing REST method for registration....");
             ServerApi server = createClient(request.chatServer, request);
-            Response<Void> response = null;
-            // TODO execute the Web service call
-            response = server.register(request.chatname).execute();
+            Response<Void> response = server.register(request.chatname).execute();
+            Log.d(TAG, "perform: got response");
             return request.getResponse(response);
         } catch (SocketTimeoutException e) {
             Log.e(TAG, "Socket timeout.", e);
@@ -169,7 +169,7 @@ public class RestMethod {
         try {
             ServerApi server = createClient(Objects.requireNonNull(Settings.getServerUri(context)), request);
             Response<Void> response = null;
-            // TODO execute the Web service call
+            Log.d(TAG, "perform: " + request.message.senderId + request.message.messageText);
             response = server.postMessage(request.message.senderId, request.message).execute();
             return request.getResponse(response);
         } catch (SocketTimeoutException e) {
@@ -206,10 +206,8 @@ public class RestMethod {
             }
         };
 
-        // TODO execute the Web service call
         Response<ResponseBody> callResponse = server.syncMessages(senderId, request.lastSequenceNumber, requestBody).execute();
         ChatServiceResponse response = request.getResponse(callResponse);
-        // end TODO
 
         /*
          * If the connection was successful, the request processor will process the streaming input JSON data.

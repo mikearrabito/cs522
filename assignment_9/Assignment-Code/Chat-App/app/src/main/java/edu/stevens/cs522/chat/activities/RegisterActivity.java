@@ -6,7 +6,6 @@
  in the messages, and stripped off upon receipt.
 
  Copyright (c) 2017 Stevens Institute of Technology
-
  **********************************************************************/
 package edu.stevens.cs522.chat.activities;
 
@@ -14,6 +13,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,8 +24,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.util.concurrent.Executor;
+
 import edu.stevens.cs522.chat.R;
 import edu.stevens.cs522.chat.rest.ChatHelper;
+import edu.stevens.cs522.chat.services.RegisterService;
 import edu.stevens.cs522.chat.services.ResultReceiverWrapper;
 import edu.stevens.cs522.chat.settings.Settings;
 
@@ -58,6 +61,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Resul
          * We only get to register once.
          */
         if (Settings.isRegistered(this)) {
+            Toast.makeText(getApplicationContext(), "Already Registered", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -74,7 +78,6 @@ public class RegisterActivity extends Activity implements OnClickListener, Resul
 
         Button registerButton = (Button) findViewById(R.id.register_button);
         registerButton.setOnClickListener(this);
-
     }
 
     public void onResume() {
@@ -107,7 +110,7 @@ public class RegisterActivity extends Activity implements OnClickListener, Resul
             if (!serverAddress.endsWith("/")) {
                 serverAddress += "/";
             }
-            Log.d(TAG, "Registering with server URI: "+serverAddress);
+            Log.d(TAG, "Registering with server URI: " + serverAddress);
 
             Uri serverUri = Uri.parse(serverUriText.getText().toString()).normalizeScheme();
 
@@ -116,13 +119,10 @@ public class RegisterActivity extends Activity implements OnClickListener, Resul
                 Log.d(TAG, "Empty chat name for registration!");
                 return;
             }
-            Log.d(TAG, "Registering with chat name: "+userName);
-
-            helper.register(serverUri, userName, registerResultReceiver);
+            Log.d(TAG, "Registering with chat name: " + userName);
+            RegisterService.register(getApplicationContext(), serverUri, userName, registerResultReceiver);
         } else {
-
             Toast.makeText(this, "Already Registered!", Toast.LENGTH_LONG).show();
-
         }
 
     }

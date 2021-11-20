@@ -7,7 +7,6 @@ import java.util.Date;
 
 import edu.stevens.cs522.base.InetAddressUtils;
 
-// TODO complete this class (use InetAddressUtils)
 public class InetAddressConverter {
     @TypeConverter
     public static InetAddress fromAddress(String ipString) {

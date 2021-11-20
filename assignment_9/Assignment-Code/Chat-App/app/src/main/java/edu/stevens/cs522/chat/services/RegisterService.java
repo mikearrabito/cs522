@@ -86,7 +86,7 @@ public class RegisterService extends Service {
 
         Intent notificationIntent = new Intent(this, RegisterActivity.class);
         PendingIntent pendingIntent =
-                PendingIntent.getActivity(this, 0, notificationIntent, 0);
+                PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_MUTABLE);
 
         /*
          * If you are feeling ambitious, try adding a CANCEL action to the notification.....
@@ -140,7 +140,7 @@ public class RegisterService extends Service {
             // We will sleep for a few seconds just to show a foreground service in action
             try {
                 Log.d(TAG, "Registering with the chat server on a background thread.....");
-                Thread.sleep(12000);
+                Thread.sleep(5000);
 
                 RegisterRequest registerRequest = new RegisterRequest(serverUrl, chatName);
 
@@ -153,7 +153,6 @@ public class RegisterService extends Service {
             } finally {
 
                 final ChatServiceResponse registerResponse = response;
-
                 /*
                  * Now we're registered, update the activity and shut down the service on the main thread.
                  */
@@ -165,10 +164,8 @@ public class RegisterService extends Service {
                     if (receiver != null) {
                         // Use receiver to call back to activity
                         if (registerResponse != null && !(registerResponse instanceof ErrorResponse)) {
-                            // TODO let activity know request succeeded
                             receiver.send(RESULT_OK, null);
                         } else {
-                            // TODO let activity know request failed
                             receiver.send(RESULT_CANCELED, null);
                         }
                     } else {

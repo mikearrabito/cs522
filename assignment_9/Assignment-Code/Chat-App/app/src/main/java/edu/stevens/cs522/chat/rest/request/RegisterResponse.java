@@ -20,7 +20,7 @@ public class RegisterResponse extends ChatServiceResponse {
 
     public RegisterResponse(Response<?> response) throws IOException {
         super(response);
-        String location = null;
+        String location = response.headers().get(LOCATION);
         if (location != null) {
             Uri uri = Uri.parse(location);
             senderId = Long.parseLong((uri.getLastPathSegment()));
